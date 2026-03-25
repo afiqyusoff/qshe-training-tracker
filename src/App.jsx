@@ -30,6 +30,7 @@ import {
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable'; // Note the 'autoTable' name here
 import QRCode from 'qrcode';
+import { supabase } from './supabaseClient';
 
 // --- INITIAL DATA ---
 const INITIAL_USERS = [
@@ -84,10 +85,7 @@ const App = () => {
   // --- UPGRADED DATA STORAGE (LOCALSTORAGE) ---
   
   // 1. Initialize Users (Checks if you have saved data, otherwise uses Initial list)
-  const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem('gamuda_users');
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
-  });
+  const [users, setUsers] = useState([]);
 
   // 2. Initialize Trainings
   const [trainings, setTrainings] = useState(() => {
@@ -100,6 +98,24 @@ const App = () => {
     const saved = localStorage.getItem('gamuda_logs');
     return saved ? JSON.parse(saved) : INITIAL_LOGS;
   });
+
+  // 1. Load data from Cloud on Startup
+    useEffect(() => {
+      const fetchProfiles = async () => {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('name', { ascending: true });
+
+        if (error) {
+          console.error("Error fetching profiles:", error);
+        } else if (data && data.length > 0) {
+          setUsers(data); // This replaces your local list with the Cloud list
+        }
+      };
+
+      fetchProfiles();
+}, []);
 
   // --- AUTOMATIC SAVING LOGIC ---
   // This runs every time "users", "trainings", or "logs" change
