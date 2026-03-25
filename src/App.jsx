@@ -215,38 +215,57 @@ useEffect(() => {
   };
 
   // --- LOGIC: SCORING ---
-  const handleLogSubmit = (e) => {
-    e.preventDefault();
-    const user = users.find(u => u.id === logForm.employeeId.trim());
-    const training = trainings.find(t => t.id === logForm.trainingId);
-    
-    if (!user) return showNotification("Error: Employee ID not found.");
-    
-    let pointsAwarded = training.points;
-    if (logForm.isConductor) pointsAwarded *= 2;
+ const handleLogSubmit = async (e) => {
+  e.preventDefault();
+  const user = users.find(u => u.id === logForm.employeeId.trim());
+  const training = trainings.find(t => t.id === logForm.trainingId);
+  
+  if (!user) return showNotification("Error: Employee ID not found.");
+  
+  let pointsAwarded = training.points;
+  if (logForm.isConductor) pointsAwarded *= 2;
 
-    const newLog = {
-      id: Date.now(),
-      userId: user.id, // Using 'userId' to match your existing state
-      userName: user.name, // <--- ADD THIS: Very important for the PDF search!
-      trainingName: training.name,
+  // 1. SAVE LOG TO CLOUD
+  const { error: logError } = await supabase
+    .from('logs')
+    .insert([{
+      user_id: user.id,
+      training_name: training.name,
       points: pointsAwarded,
       role: logForm.isConductor ? 'CONDUCTOR' : 'ATTENDEE',
       date: new Date().toISOString().split('T')[0]
-    };
-    setLogs([newLog, ...logs]);
+    }]);
 
-    setUsers(users.map(u => {
-      if (u.id === user.id) {
-        return {
-          ...u,
-          totalScore: u.totalScore + pointsAwarded,
-          conducted: u.conducted + (logForm.isConductor ? 1 : 0),
-          attended: u.attended + (logForm.isConductor ? 0 : 1)
-        };
-      }
-      return u;
-    }));
+  if (logError) return showNotification("Failed to save log.");
+
+  // 2. UPDATE USER SCORE IN CLOUD
+  const newScore = (user.total_score || 0) + pointsAwarded;
+  const { error: userError } = await supabase
+    .from('profiles')
+    .update({ total_score: newScore })
+    .eq('id', user.id);
+
+  if (userError) return showNotification("Failed to update score.");
+
+  // 3. REFRESH LOCAL DATA
+  // We call our fetch functions again to make sure everything matches the cloud
+    const fetchCloudData = async () => {
+    // Pull Profiles
+    const { data: profileData } = await supabase.from('profiles').select('*').order('name');
+    if (profileData) setUsers(profileData);
+
+    // Pull Logs
+    const { data: logData } = await supabase.from('logs').select('*').order('created_at', { ascending: false });
+    if (logData) setLogs(logData);
+  };
+
+  useEffect(() => {
+    fetchCloudData();
+  }, []);
+
+  showNotification(`Success: ${pointsAwarded} pts for ${user.name}`);
+  setLogForm({ ...logForm, employeeId: '' });
+};
 
     showNotification(`Success: ${pointsAwarded} pts for ${user.name}`);
     setLogForm({ ...logForm, employeeId: '' });
