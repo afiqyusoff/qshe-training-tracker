@@ -116,10 +116,11 @@ const App = () => {
   }, [logs]);
 
   // 1. Add the Target Score to State (Checks LocalStorage or defaults to ComplianceTarget)
-const [complianceTarget, setComplianceTarget] = useState(() => {
-  const saved = localStorage.getItem('gamuda_target');
-  return saved ? parseInt(saved) : complianceTarget;
-});
+  const [complianceTarget, setComplianceTarget] = useState(() => {
+    const saved = localStorage.getItem('gamuda_target');
+    // If no saved value, use a hardcoded default (like 40)
+    return saved ? parseInt(saved) : 40; 
+  });
 
 // 2. Add the Auto-Save logic for the Target
 useEffect(() => {
@@ -280,7 +281,7 @@ useEffect(() => {
     doc.setFontSize(22);
     doc.text("SITE COMPLIANCE REPORT", 14, 22);
     doc.setFontSize(10);
-    doc.text(`PROJECT: GAMUDA TRS | GENERATED: ${date}`, 14, 32);
+    doc.text(`PROJECT: QSHE TRACKER | GENERATED: ${date}`, 14, 32);
 
     // 2. Data Table (Using the direct autoTable call)
     const tableColumn = ["ID", "Name", "Role", "Score", "Status"];
@@ -318,7 +319,7 @@ useEffect(() => {
     
     // 1. Generate the QR Code (links to their ID)
     // In a real app, this URL would be your website link + user ID
-    const qrDataUrl = await QRCode.toDataURL(`GAMUDA-TRS-ID: ${user.id}`);
+    const qrDataUrl = await QRCode.toDataURL(`QSHE-ID: ${user.id}`);
 
     // 2. Navy Header
     doc.setFillColor(0, 43, 73);
@@ -380,7 +381,7 @@ const exportToExcel = () => {
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
   link.setAttribute("href", url);
-  link.setAttribute("download", `Gamuda_Site_Logs_${new Date().toLocaleDateString()}.csv`);
+  link.setAttribute("download", `QSHE_Training_Logs_${new Date().toLocaleDateString()}.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
