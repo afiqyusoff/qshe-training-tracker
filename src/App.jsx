@@ -253,19 +253,41 @@ useEffect(() => {
   };
 
   // --- LOGIC: ADMIN CRUD ---
-  const saveUser = (e) => {
-    e.preventDefault();
-    if (editingItem && editingItem.type === 'user') {
-      setUsers(users.map(u => u.id === editingItem.data.id ? userForm : u));
-      setEditingItem(null);
-      showNotification("User profile updated.");
-    } else {
-      if (users.some(u => u.id === userForm.id)) return showNotification("Error: ID already exists.");
-      setUsers([{ ...userForm, attended: 0, conducted: 0, totalScore: 0 }, ...users]);
-      showNotification("New member registered.");
+ const saveUser = async (e) => {
+  e.preventDefault();
+  
+  if (editingItem && editingItem.type === 'user') {
+    // UPDATE EXISTING USER IN CLOUD
+    const { error } = await supabase
+      .from('profiles')
+      .update({ name: userForm.name, role: userForm.role })
+      .eq('id', userForm.id);
+
+    if (error) return showNotification("Update failed.");
+    
+    setUsers(users.map(u => u.id === userForm.id ? userForm : u));
+    setEditingItem(null);
+    showNotification("Cloud Profile Updated");
+  } else {
+    // INSERT NEW USER TO CLOUD
+    if (users.some(u => u.id === userForm.id)) return showNotification("ID already exists.");
+
+    const newUser = { ...userForm, total_score: 0 };
+
+    const { error } = await supabase
+      .from('profiles')
+      .insert([newUser]);
+
+    if (error) {
+      console.error(error);
+      return showNotification("Database error.");
     }
-    setUserForm({ id: '', name: '', role: 'General Worker' });
-  };
+
+    setUsers([newUser, ...users]);
+    showNotification("Registered to Cloud Database");
+  }
+  setUserForm({ id: '', name: '', role: 'General Worker' });
+};
 
   const saveTraining = (e) => {
     e.preventDefault();
