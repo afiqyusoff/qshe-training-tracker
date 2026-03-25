@@ -156,7 +156,7 @@ const App = () => {
              </div>
              <table className="w-full">
                 <thead className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
-                  <tr><th className="px-6 py-4 text-left">Employee</th><th className="px-6 py-4 text-center">Score</th><th className="px-6 py-4 text-right">Action</th></tr>
+                  <tr><th className="px-6 py-4 text-left">Employee</th><th className="px-7 py-4 text-center">Score</th><th className="px-6 py-4 text-right">Action</th></tr>
                 </thead>
                 <tbody className="divide-y">
                   {filteredUsers.map(user => (
