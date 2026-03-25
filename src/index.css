@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* This tells the engine EXACTLY where your code is */
+@source "../index.html";
+@source "./**/*.{js,ts,jsx,tsx}";
+
+/* Custom Gamuda Theme */
+@theme {
+  --color-gamuda: #002B49;
+}
+
+/* This forces the background to be the light slate gray we want */
+body {
+  @apply bg-slate-50;
+}
