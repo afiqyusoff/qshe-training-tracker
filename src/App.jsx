@@ -215,7 +215,7 @@ useEffect(() => {
   };
 
   // --- LOGIC: SCORING ---
- const handleLogSubmit = async (e) => {
+const handleLogSubmit = async (e) => {
   e.preventDefault();
   const user = users.find(u => u.id === logForm.employeeId.trim());
   const training = trainings.find(t => t.id === logForm.trainingId);
@@ -225,18 +225,19 @@ useEffect(() => {
   let pointsAwarded = training.points;
   if (logForm.isConductor) pointsAwarded *= 2;
 
-  // 1. SAVE LOG TO CLOUD
+  // 1. SAVE LOG TO CLOUD (Matching your 4-column table)
   const { error: logError } = await supabase
     .from('logs')
     .insert([{
       user_id: user.id,
       training_name: training.name,
-      points: pointsAwarded,
-      role: logForm.isConductor ? 'CONDUCTOR' : 'ATTENDEE',
-      date: new Date().toISOString().split('T')[0]
+      points: pointsAwarded
     }]);
 
-  if (logError) return showNotification("Failed to save log.");
+  if (logError) {
+    console.error(logError);
+    return showNotification("Failed to save log: " + logError.message);
+  }
 
   // 2. UPDATE USER SCORE IN CLOUD
   const newScore = (user.total_score || 0) + pointsAwarded;
@@ -247,29 +248,23 @@ useEffect(() => {
 
   if (userError) return showNotification("Failed to update score.");
 
-  // 3. REFRESH LOCAL DATA
-  // We call our fetch functions again to make sure everything matches the cloud
-    const fetchCloudData = async () => {
-    // Pull Profiles
-    const { data: profileData } = await supabase.from('profiles').select('*').order('name');
-    if (profileData) setUsers(profileData);
-
-    // Pull Logs
-    const { data: logData } = await supabase.from('logs').select('*').order('created_at', { ascending: false });
-    if (logData) setLogs(logData);
-  };
-
-  useEffect(() => {
-    fetchCloudData();
-  }, []);
-
+  // 3. REFRESH DATA & CLEAR FORM
+  await fetchCloudData(); 
   showNotification(`Success: ${pointsAwarded} pts for ${user.name}`);
   setLogForm({ ...logForm, employeeId: '' });
 };
 
-    showNotification(`Success: ${pointsAwarded} pts for ${user.name}`);
-    setLogForm({ ...logForm, employeeId: '' });
-  };
+const fetchCloudData = async () => {
+  const { data: profileData } = await supabase.from('profiles').select('*').order('name');
+  if (profileData) setUsers(profileData);
+
+  const { data: logData } = await supabase.from('logs').select('*').order('created_at', { ascending: false });
+  if (logData) setLogs(logData);
+};
+
+useEffect(() => {
+  fetchCloudData();
+}, []);
 
   // --- LOGIC: ADMIN CRUD ---
  const saveUser = async (e) => {
